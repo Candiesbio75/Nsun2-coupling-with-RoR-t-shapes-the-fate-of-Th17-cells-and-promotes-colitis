@@ -17,20 +17,17 @@ mkdir -p clean_data/fastqc
 cd clean_data
 fastqc $R1 -t $thread -o ./fastqc
 fastqc $R2 -t $thread -o ./fastqc
-
-##去接头序列
 cutadapt -a AGATCGGAAGAG -A AGATCGGAAGAG -U 3 -o cutadapt_1.fastq.gz -p cutadapt_2.fastq.gz  $R1  $R2
 
 fastqc cutadapt_1.fastq.gz -t $thread -o ./fastqc
 fastqc cutadapt_2.fastq.gz -t $thread -o ./fastqc
 
-##去低质量
 java -Xmx4g -jar trimmomatic-0.36.jar PE -phred33 cutadapt_1.fastq.gz cutadapt_2.fastq.gz ./trim_qua_1.fastq.gz ./unpaired_1.fastq.gz ./trim_qua_2.fastq.gz ./unpaired_2.fastq.gz LEADING:20 TRAILING:20 SLIDINGWINDOW:4:20 MINLEN:20
 rm  cutadapt_1.fastq.gz cutadapt_2.fastq.gz
 fastqc ./trim_qua_1.fastq.gz -t $thread -o ./fastqc
 fastqc ./trim_qua_2.fastq.gz -t $thread -o ./fastqc
 
-###############rRNA mapping
+###############rRNA filtering
 cd $path
 mkdir rRNA_mapping
 hisat2 -p $thread -N 1 --dta -x $rRNA  -1 ./clean_data/trim_qua_1.fastq.gz -2 ./clean_data/trim_qua_2.fastq.gz -S rRNA_mapping/hisat2.sam --un-conc ./rRNA_mapping/2_delrRNA 2> mapping_stat
@@ -58,7 +55,6 @@ cat hisat2_output.sam|grep -v "^@"|cut -f1|awk '!x[$0]++'|wc -l >>readsCount
 samtools view -S hisat2_output.sam -b -o hisat2_output.bam
 rm hisat2_output.sam
 
-##注意reads名字(^HWI)是否正确
 echo "reads mapped without -q:" >>readsCount
 samtools view  hisat2_output.bam |awk '$3!="*"'|awk '!x[$1]++'|wc -l >>readsCount
 
