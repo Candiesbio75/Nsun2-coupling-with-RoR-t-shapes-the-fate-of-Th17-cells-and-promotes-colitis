@@ -23,8 +23,6 @@ R1=./$sample/${sample}_R1.fq.gz
 R2=./$sample/${sample}_R2.fq.gz 
 
 #Step1 =============================
-##去接头序列
-##去低质量
 ##fastqc
 # ==================
 cutadapt -a AGATCGGAAGAG -A AGATCGGAAGAG -o 1_cutadapt_1.fastq.gz -p 1_cutadapt_2.fastq.gz $R1 $R2
@@ -43,7 +41,6 @@ rm  1_cutadapt_1.fastq.gz 1_cutadapt_2.fastq.gz  2_cutadapt_1.fastq.gz 2_cutadap
 
 
 ##Step2 =============================
-#根据文献The landscape of accessible chromatin in mammalian preimplantation embryos设置的参数
 #mapping using bowtie
 # ==================
 cd $path
@@ -57,7 +54,6 @@ samtools view 0_align.bam|grep -v "^@"|awk '$3~/^chr/'|cut -f1|awk '!x[$0]++ '|w
 #Step3 =============================
 # Remove unmapped, mate unmapped
 # not primary alignment, reads failing platform
-# -k 设置multimapping的最大数值
 # ==================
 samtools view -h -F 1804 -b 0_align.bam | samtools sort - -o 3_filter.bam
 if [ -e 3_filter.bam.bam ]; then mv 3_filter.bam.bam 3_filter.bam; fi
@@ -100,7 +96,7 @@ samtools view 5_deMT.bam|grep -v "^@"|awk '$3~/^chr/'|cut -f1|awk '!x[$0]++'|wc 
 
 
 #step8 ============================= 
-# 去除非unique mapping的read
+# unique mapping
 # ============================= 
 samtools view -h -q 20 -b 5_deMT.bam > 6_last.bam
 samtools index 6_last.bam
@@ -110,7 +106,6 @@ echo "read with quality > Q20" >> readsCount
 samtools view 6_last.bam|grep -v "^@"|awk '$3~/^chr/'|cut -f1|awk '!x[$0]++'|wc -l >> readsCount
 
 #step9 ============================= 
-# 位点矫正
 # ============================= 
 outpath=$path/bowtie2
 bamfile=$path/bowtie2/6_last.bam
@@ -119,7 +114,7 @@ bamindex=$path/bowtie2/6_last.bam.bai
 Rscript ./software/ATAC/ATACseq/R/shiftbam.R $outpath $bamfile $bamindex
 
 #step10 ============================= 
-# bw生成
+# bw
 # ============================= 
 bamCoverage -p 12 --normalizeUsing RPKM -b 7_shifted.bam -o  8_norm.bw 
 
