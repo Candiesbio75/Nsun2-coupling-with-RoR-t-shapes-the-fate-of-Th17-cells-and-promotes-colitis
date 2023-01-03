@@ -1,7 +1,7 @@
 #!/bin/sh
 
 thread=5
-####################需要准备的文件
+####################
 genome_index=./Mouse/ENSEMBLE_68/index/genome.fa
 gtf=./Mouse/ENSEMBLE_68/GTF/Mus_musculus.GRCm38.68.chr.gtf
 single=./Mouse/ENSEMBLE_68/GeneList/single-transcript-chr
