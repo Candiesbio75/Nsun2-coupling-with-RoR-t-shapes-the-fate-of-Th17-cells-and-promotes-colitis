@@ -1,7 +1,7 @@
 #!/bin/sh
 thread=12
 
-####################需要准备的文件
+####################
 genome_index=./Mouse/ENSEMBLE_68/index/genome.fa
 gtf=./Mouse/ENSEMBLE_68/GTF/Mus_musculus.GRCm38.68.chr.gtf
 single=./Mouse/ENSEMBLE_68/GeneList/single-transcript-chr
@@ -32,14 +32,8 @@ cd $path
 mkdir clean_data
 mkdir ./clean_data/fastqc
 cd clean_data
-
-##去接头序列
 cutadapt -a AGATCGGAAGAGCACACGTCT -A AGATCGGAAGAGCGTCGTGTAG -o 1_cutadapt_1.fastq.gz -p 1_cutadapt_2.fastq.gz $R1 $R2
-
-#######去掉前后10 bases
 cutadapt -u 10 -u -10 -U 10 -U -10 -o 2_cutadapt_1.fastq.gz -p 2_cutadapt_2.fastq.gz 1_cutadapt_1.fastq.gz 1_cutadapt_2.fastq.gz
-
-##去低质量
 java -Xmx4g -jar trimmomatic-0.36.jar PE -phred33 2_cutadapt_1.fastq.gz 2_cutadapt_2.fastq.gz ./3_trim_qua_1.fastq.gz ./unpaired_1.fastq.gz ./3_trim_qua_2.fastq.gz ./unpaired_2.fastq.gz LEADING:3 TRAILING:3 SLIDINGWINDOW:4:20 MINLEN:35
 
 ########################quality control
@@ -50,7 +44,7 @@ fastqc 3_trim_qua_1.fastq.gz -t $thread -o ./fastqc
 fastqc 3_trim_qua_2.fastq.gz -t $thread -o ./fastqc
 rm  1_cutadapt_1.fastq.gz 1_cutadapt_2.fastq.gz  2_cutadapt_1.fastq.gz 2_cutadapt_2.fastq.gz
 
-###################过滤rRNA之后再mapping??
+###################rRNA filtering
 cd $path
 mkdir rRNA_mapping
 cd  rRNA_mapping
@@ -64,8 +58,7 @@ gzip un-conc-mate.2
 mv un-conc-mate.1.gz $path/clean_data/derRNA.1.gz
 mv un-conc-mate.2.gz $path/clean_data/derRNA.2.gz
 
-#################根据文献The landscape of accessible chromatin in mammalian preimplantation embryos设置的参数
-##################mapping 并且得到unique mapping 
+##################mapping 
 cd $path
 mkdir bowtie2
 cd bowtie2
@@ -108,7 +101,7 @@ cd $path
 mkdir quality
 cd quality
 
-####查看TSS附件信号强度
+####TSS
 computeMatrix reference-point  --referencePoint TSS  -p $thread  \
 -b 10000 -a 10000    \
 -R $gtf  \
@@ -120,7 +113,7 @@ plotHeatmap -m matrix_TSS.gz  -out TSS_Heatmap.pdf --plotFileFormat pdf  --dpi 7
 plotProfile -m matrix_TSS.gz  -out TSS_Profile.pdf --plotFileFormat pdf --perGroup --dpi 720
 
 
-#查看基因body的信号强度
+#genebody
 computeMatrix scale-regions  -p $thread  \
 -R $gtf  \
 -S ../bowtie2/*.bw \
@@ -132,11 +125,11 @@ plotHeatmap -m matrix_body.gz  -out Body_Heatmap.pdf --plotFileFormat pdf  --dpi
 plotProfile -m matrix_body.gz -out Body_Profile.pdf --plotFileFormat pdf --perGroup --dpi 720
 
 
-##########peak注释
+##########peak annotation
 awk '{print $4"\t"$1"\t"$2"\t"$3"\t+"}' ../macs/*peaks.narrowPeak > homer_peaks.tmp
 ./homer/bin/annotatePeaks.pl  homer_peaks.tmp mm10 -gtf $gtf 1>peakAnn.xls  2> annLog.txt
 
-#########motif 注释
+#########motif annotation
 ./homer/bin/findMotifsGenome.pl homer_peaks.tmp  mm10 motifDir -len 8,10,12 
 
 
